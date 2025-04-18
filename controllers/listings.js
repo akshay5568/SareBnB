@@ -21,12 +21,13 @@ module.exports.ShowRoute = async (req,res) => {
 };
 
 module.exports.CreateRoute = async (req,res,next) => {
-
+    let url = req.file.path;
+    let filename = req.file.filename;
     // const {title,description, image,price,location,country} = req.body;
     // let newlisting = {title,description, image,price,location,country} ;
     let newlisting =new listing(req.body.listing);
-
     newlisting.owner = req.user._id;
+    newlisting.image = {url,filename};
     await newlisting.save();
     req.flash("success", "Listing Created Successfully")
     res.redirect("/listings");
@@ -40,13 +41,22 @@ module.exports.EditRoute = async (req,res,next) => {
             req.flash("error", "Listing Not Found")
             return res.redirect("/listings")
         }
-       res.render("listings/edit", {listingData})
+        let orignalImageUrl = listingData.image.url;
+        orignalImageUrl = orignalImageUrl.replace("upload", "/upload/h_300,w_250")
+       res.render("listings/edit", {listingData , orignalImageUrl})
 };
 
 module.exports.UpdateRoute = async (req,res) => {
+    
     if(!req.body.listing) throw new ExpressError(400, "Invalid Listing Data");
     let {id} = req.params;
-    await listing.findByIdAndUpdate(id, {...req.body.listing});
+    let listing = await listing.findByIdAndUpdate(id, {...req.body.listing});
+    if(typeof req.file !== "undefined"){
+        let url = req.file.path;
+        let filename = req.file.filename;
+        listing.image = {url,filename};
+        await listing.save();
+    }
     req.flash("success", "Listing Updated Successfully")
     res.redirect(`/listings/${id}`);
 };

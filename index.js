@@ -1,3 +1,7 @@
+
+
+require('dotenv').config();
+const cloudinary = require('cloudinary').v2;
 const express = require('express');
 const app = express();
 const port = 8080;
@@ -7,6 +11,7 @@ const req = require('express/lib/request');
 const methodOverride = require('method-override');
 const ejsMate = require('ejs-mate');
 const ExpressError = require('./utils/ExpressError');
+const MongoStore = require('connect-mongo');
 const listings = require("./Routes/listings.js");
 const reviews = require("./Routes/reviews.js");
 const userRouter = require("./Routes/user.js");
@@ -18,8 +23,50 @@ const User = require('./models/user.js');
 
 
 
+
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'ejs');
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.urlencoded({extended: true}));
+app.use(methodOverride('_method'));
+app.engine('ejs', ejsMate);
+
+const secret = process.env.SECRET;
+const DBurl = process.env.ATLASDB_URL;
+
+main().then(() => {
+    console.log("Connected to MongoDB");
+})
+.catch(err => {
+    console.log(err);
+})
+
+
+async function main() {
+    await mongoose.connect(DBurl);
+}
+
+
+
+
+
+
+const store = MongoStore.create({
+    mongoUrl:DBurl,
+    crypto: {
+        secret:secret
+    },
+    touchAfter:24 * 3600,
+})
+
+store.on("error", () => {
+    console.log("ERROR IN MONGO SESSION STORE", err);
+    
+})
+
 const sessionOptions = {
-    secret: "mysupersecretcode",
+    store,
+    secret: secret,
     resave: false,
     saveUninitialized: true,
     Cookie: {
@@ -56,28 +103,19 @@ app.listen(port, () => {
 })
 
 
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'ejs');
-app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.urlencoded({extended: true}));
-app.use(methodOverride('_method'));
-app.engine('ejs', ejsMate);
 
 
-app.get("/", (req,res) => {
-    res.send("Hello World!");
-})
 
-main().then(() => {
-    console.log("Connected to MongoDB");
-})
-.catch(err => {
-    console.log(err);
-})
 
-async function main() {
-    await mongoose.connect('mongodb://127.0.0.1:27017/Sharebnb');
-}
+
+
+// app.get("/", (req,res) => {
+//     res.send("Hello World!");
+// })
+
+
+
+
 
 
 // app.get("/listings" , async (req,res) => {

@@ -8,7 +8,8 @@ const reviews = require('../models/review.js');
 const { isLoggedin, isOwner } = require('../middelware.js');
 const listingControllers = require("../controllers/listings.js");
 const multer = require('multer');
-const upload = multer({dest: 'uploads/'})
+const {storage} = require("../cloudConfig.js");
+const upload = multer({storage})
 
 const validateListing = (req, res, next) => {
     let {error} = listingSchema.validate(req.body);
@@ -39,20 +40,23 @@ router.get('/:id',
 
 
 //Create Route
-router.post('/' , validateListing,
+router.post('/' , 
+    upload.single("listing[image]"),
+    validateListing,
     WrapAsync(listingControllers.CreateRoute));
 
-
+    
 //Edit Route
     router.get('/:id/edit' ,
          isLoggedin,
-            isOwner,
+         isOwner,
          WrapAsync(listingControllers.EditRoute));
 
 //Update Route
 router.put("/:id" , 
     isLoggedin,  
     isOwner,
+    upload.single("listing[image]"),
     validateListing,
     WrapAsync(listingControllers.UpdateRoute));
 
